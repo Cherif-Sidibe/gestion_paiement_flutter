@@ -48,4 +48,21 @@ class WalletApiService {
       'amount': amount,
     });
   }
+
+  /// Paie en lot les factures [factureReferences], qui doivent toutes
+  /// appartenir au meme service [serviceName] (contrainte du back).
+  ///
+  /// Un solde insuffisant, une facture deja payee ou inexistante remonte le
+  /// message metier FR du back via [ApiException].
+  Future<void> payFactures({
+    required String phoneNumber,
+    required String serviceName,
+    required List<String> factureReferences,
+  }) async {
+    await _client.post('$walletsPath/pay-factures', body: {
+      'phoneNumber': phoneNumber,
+      'serviceName': serviceName,
+      'factureReferences': factureReferences,
+    });
+  }
 }
