@@ -9,6 +9,7 @@ import 'package:gestion_paiement_flutter/core/theme/app_theme.dart';
 import 'package:gestion_paiement_flutter/features/auth/provider/auth_provider.dart';
 import 'package:gestion_paiement_flutter/features/dashboard/provider/balance_provider.dart';
 import 'package:gestion_paiement_flutter/features/dashboard/provider/transactions_provider.dart';
+import 'package:gestion_paiement_flutter/features/transfers/provider/transfer_provider.dart';
 import 'package:gestion_paiement_flutter/routes/app_router.dart';
 
 void main() {
@@ -51,6 +52,9 @@ class BadWalletApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => TransactionsProvider(walletApiService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => TransferProvider(walletApiService),
         ),
       ],
       child: MaterialApp(

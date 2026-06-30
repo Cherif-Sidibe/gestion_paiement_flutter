@@ -32,4 +32,20 @@ class WalletApiService {
     final body = ApiClient.unwrapBody(json) as List<dynamic>;
     return body.map((e) => Transaction.fromJson(e as Map<String, dynamic>)).toList();
   }
+
+  /// Transfere [amount] de [senderPhone] vers [receiverPhone].
+  ///
+  /// En cas de solde insuffisant ou d'erreur metier, le back renvoie un status
+  /// >= 400 et [ApiClient] releve le message via [ApiException].
+  Future<void> transfer({
+    required String senderPhone,
+    required String receiverPhone,
+    required double amount,
+  }) async {
+    await _client.post('$walletsPath/transfer', body: {
+      'senderPhone': senderPhone,
+      'receiverPhone': receiverPhone,
+      'amount': amount,
+    });
+  }
 }
