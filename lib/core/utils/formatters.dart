@@ -17,3 +17,15 @@ String formatDateIso(String? isoDate) {
   }
   return DateFormat('dd/MM/yyyy HH:mm', 'fr_FR').format(parsed);
 }
+
+/// Formatte une date ISO du back en date courte (ex 30/06/2026).
+String formatDateCourte(String? isoDate) {
+  if (isoDate == null || isoDate.isEmpty) {
+    return '-';
+  }
+  final parsed = DateTime.tryParse(isoDate);
+  if (parsed == null) {
+    return isoDate;
+  }
+  return DateFormat('dd/MM/yyyy', 'fr_FR').format(parsed);
+}
