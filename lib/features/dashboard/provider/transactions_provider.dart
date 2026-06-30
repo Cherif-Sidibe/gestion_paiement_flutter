@@ -24,6 +24,9 @@ class TransactionsProvider extends ChangeNotifier {
   /// Les 5 transactions les plus recentes (apercu du dashboard).
   List<Transaction> get latest => _transactions.take(5).toList();
 
+  /// Toute la liste (recent -> ancien) pour l'ecran historique.
+  List<Transaction> get all => _transactions;
+
   Future<void> loadTransactions(String phone) async {
     _phone = phone;
     _state = ViewState.loading;
