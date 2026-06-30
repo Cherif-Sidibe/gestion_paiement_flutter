@@ -1,0 +1,62 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'package:gestion_paiement_flutter/core/network/api_client.dart';
+import 'package:gestion_paiement_flutter/core/network/billing_api_service.dart';
+import 'package:gestion_paiement_flutter/core/network/wallet_api_service.dart';
+import 'package:gestion_paiement_flutter/core/storage/session_storage.dart';
+import 'package:gestion_paiement_flutter/core/theme/app_theme.dart';
+import 'package:gestion_paiement_flutter/features/auth/provider/auth_provider.dart';
+import 'package:gestion_paiement_flutter/features/dashboard/provider/balance_provider.dart';
+import 'package:gestion_paiement_flutter/routes/app_router.dart';
+
+void main() {
+  final apiClient = ApiClient();
+  final walletApiService = WalletApiService(apiClient);
+  final billingApiService = BillingApiService(apiClient);
+  final sessionStorage = SessionStorage();
+
+  runApp(BadWalletApp(
+    walletApiService: walletApiService,
+    billingApiService: billingApiService,
+    sessionStorage: sessionStorage,
+  ));
+}
+
+class BadWalletApp extends StatelessWidget {
+  final WalletApiService walletApiService;
+  final BillingApiService billingApiService;
+  final SessionStorage sessionStorage;
+
+  const BadWalletApp({
+    super.key,
+    required this.walletApiService,
+    required this.billingApiService,
+    required this.sessionStorage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        Provider<WalletApiService>.value(value: walletApiService),
+        Provider<BillingApiService>.value(value: billingApiService),
+        Provider<SessionStorage>.value(value: sessionStorage),
+        ChangeNotifierProvider(
+          create: (_) => AuthProvider(walletApiService, sessionStorage),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => BalanceProvider(walletApiService),
+        ),
+      ],
+      child: MaterialApp(
+        title: 'BadWallet',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        initialRoute: AppRouter.splashRoute,
+        onGenerateRoute: AppRouter.getRoute,
+      ),
+    );
+  }
+}
