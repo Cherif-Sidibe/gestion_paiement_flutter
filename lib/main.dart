@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
 import 'package:gestion_paiement_flutter/core/network/api_client.dart';
@@ -7,10 +9,16 @@ import 'package:gestion_paiement_flutter/core/network/wallet_api_service.dart';
 import 'package:gestion_paiement_flutter/core/storage/session_storage.dart';
 import 'package:gestion_paiement_flutter/core/theme/app_theme.dart';
 import 'package:gestion_paiement_flutter/features/auth/provider/auth_provider.dart';
+import 'package:gestion_paiement_flutter/features/bills/provider/bills_provider.dart';
 import 'package:gestion_paiement_flutter/features/dashboard/provider/balance_provider.dart';
+import 'package:gestion_paiement_flutter/features/dashboard/provider/transactions_provider.dart';
+import 'package:gestion_paiement_flutter/features/transfers/provider/transfer_provider.dart';
 import 'package:gestion_paiement_flutter/routes/app_router.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('fr_FR', null);
+
   final apiClient = ApiClient();
   final walletApiService = WalletApiService(apiClient);
   final billingApiService = BillingApiService(apiClient);
@@ -48,12 +56,28 @@ class BadWalletApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => BalanceProvider(walletApiService),
         ),
+        ChangeNotifierProvider(
+          create: (_) => TransactionsProvider(walletApiService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => TransferProvider(walletApiService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => BillsProvider(walletApiService, billingApiService),
+        ),
       ],
       child: MaterialApp(
         title: 'BadWallet',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
+        locale: const Locale('fr', 'FR'),
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('fr'), Locale('fr', 'FR')],
         initialRoute: AppRouter.splashRoute,
         onGenerateRoute: AppRouter.getRoute,
       ),

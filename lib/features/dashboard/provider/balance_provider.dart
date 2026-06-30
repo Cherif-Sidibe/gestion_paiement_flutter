@@ -14,12 +14,14 @@ class BalanceProvider extends ChangeNotifier {
   ViewState _state = ViewState.initial;
   WalletBalance? _balance;
   String? _errorMessage;
+  String? _phone;
 
   ViewState get state => _state;
   WalletBalance? get balance => _balance;
   String? get errorMessage => _errorMessage;
 
   Future<void> loadBalance(String phone) async {
+    _phone = phone;
     _state = ViewState.loading;
     _errorMessage = null;
     notifyListeners();
@@ -35,5 +37,13 @@ class BalanceProvider extends ChangeNotifier {
       _state = ViewState.error;
     }
     notifyListeners();
+  }
+
+  /// Recharge le solde du dernier numero connu (apres une operation, au retour
+  /// sur le dashboard). Sans numero memorise, ne fait rien.
+  Future<void> refresh() async {
+    final phone = _phone;
+    if (phone == null) return;
+    await loadBalance(phone);
   }
 }

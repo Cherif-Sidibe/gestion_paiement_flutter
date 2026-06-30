@@ -32,4 +32,37 @@ class WalletApiService {
     final body = ApiClient.unwrapBody(json) as List<dynamic>;
     return body.map((e) => Transaction.fromJson(e as Map<String, dynamic>)).toList();
   }
+
+  /// Transfere [amount] de [senderPhone] vers [receiverPhone].
+  ///
+  /// En cas de solde insuffisant ou d'erreur metier, le back renvoie un status
+  /// >= 400 et [ApiClient] releve le message via [ApiException].
+  Future<void> transfer({
+    required String senderPhone,
+    required String receiverPhone,
+    required double amount,
+  }) async {
+    await _client.post('$walletsPath/transfer', body: {
+      'senderPhone': senderPhone,
+      'receiverPhone': receiverPhone,
+      'amount': amount,
+    });
+  }
+
+  /// Paie en lot les factures [factureReferences], qui doivent toutes
+  /// appartenir au meme service [serviceName] (contrainte du back).
+  ///
+  /// Un solde insuffisant, une facture deja payee ou inexistante remonte le
+  /// message metier FR du back via [ApiException].
+  Future<void> payFactures({
+    required String phoneNumber,
+    required String serviceName,
+    required List<String> factureReferences,
+  }) async {
+    await _client.post('$walletsPath/pay-factures', body: {
+      'phoneNumber': phoneNumber,
+      'serviceName': serviceName,
+      'factureReferences': factureReferences,
+    });
+  }
 }
