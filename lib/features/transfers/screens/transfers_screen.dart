@@ -24,6 +24,9 @@ class _TransfersScreenState extends State<TransfersScreen> {
   final _destinataireController = TextEditingController();
   final _descriptionController = TextEditingController();
 
+  /// Etape courante : 0 = destinataire/description, 1 = montant (pave custom).
+  int _etape = 0;
+
   /// Chiffres bruts saisis au pave (sans separateur) ; '' = aucun montant.
   String _montantChiffres = '';
 
@@ -62,9 +65,9 @@ class _TransfersScreenState extends State<TransfersScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _continuer() async {
-    FocusScope.of(context).unfocus();
-
+  /// Etape 1 -> 2 : valide le destinataire puis ferme le clavier systeme avant
+  /// d'afficher le pave (jamais les deux a la fois).
+  void _suivant() {
     final destinataire = _destinataireController.text.trim();
     final courant = context.read<AuthProvider>().phone;
 
@@ -80,6 +83,20 @@ class _TransfersScreenState extends State<TransfersScreen> {
       _erreur('Le destinataire doit etre different de l\'expediteur.');
       return;
     }
+
+    FocusScope.of(context).unfocus();
+    setState(() => _etape = 1);
+  }
+
+  /// Etape 2 -> 1 : retour a la saisie destinataire/description.
+  void _retour() {
+    setState(() => _etape = 0);
+  }
+
+  Future<void> _continuer() async {
+    final destinataire = _destinataireController.text.trim();
+    final courant = context.read<AuthProvider>().phone;
+
     if (_montant <= 0) {
       _erreur('Veuillez saisir un montant superieur a 0.');
       return;
@@ -122,51 +139,177 @@ class _TransfersScreenState extends State<TransfersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Transfert')),
+      appBar: AppBar(
+        title: const Text('Transfert'),
+        leading: _etape == 1
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: _retour,
+              )
+            : null,
+      ),
       body: SafeArea(
         child: Column(
           children: [
+            _IndicateurEtape(etape: _etape),
+            // IndexedStack : une seule etape visible a la fois. A l'etape 0
+            // aucun pave custom ; a l'etape 1 aucun champ focusable -> jamais
+            // de clavier systeme et de pave affiches en meme temps.
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextField(
-                      controller: _destinataireController,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Destinataire',
-                        hintText: '+221770000000',
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    _MontantAffiche(montant: _montant),
-                    const SizedBox(height: 28),
-                    TextField(
-                      controller: _descriptionController,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(
-                        labelText: 'Description (optionnel)',
-                        prefixIcon: Icon(Icons.notes_outlined),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            AmountKeypad(onKey: _onKey, onDelete: _onDelete),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-              child: FilledButton(
-                onPressed: _continuer,
-                child: const Text('Continuer'),
+              child: IndexedStack(
+                index: _etape,
+                sizing: StackFit.expand,
+                children: [
+                  _EtapeDestinataire(
+                    destinataireController: _destinataireController,
+                    descriptionController: _descriptionController,
+                    onSuivant: _suivant,
+                  ),
+                  _EtapeMontant(
+                    montant: _montant,
+                    onKey: _onKey,
+                    onDelete: _onDelete,
+                    onContinuer: _continuer,
+                  ),
+                ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Indicateur des deux etapes du transfert (destinataire puis montant).
+class _IndicateurEtape extends StatelessWidget {
+  final int etape;
+
+  const _IndicateurEtape({required this.etape});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    Widget point(int index) => Expanded(
+          child: Container(
+            height: 4,
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            decoration: BoxDecoration(
+              color: index <= etape
+                  ? colorScheme.primary
+                  : colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+      child: Column(
+        children: [
+          Row(children: [point(0), point(1)]),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              etape == 0 ? 'Etape 1 / 2 : Destinataire' : 'Etape 2 / 2 : Montant',
+              style: TextStyle(color: colorScheme.onSurfaceVariant),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Etape 1 : destinataire + description (claviers systeme), sans pave custom.
+class _EtapeDestinataire extends StatelessWidget {
+  final TextEditingController destinataireController;
+  final TextEditingController descriptionController;
+  final VoidCallback onSuivant;
+
+  const _EtapeDestinataire({
+    required this.destinataireController,
+    required this.descriptionController,
+    required this.onSuivant,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: destinataireController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Destinataire',
+                    hintText: '+221770000000',
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: descriptionController,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(
+                    labelText: 'Description (optionnel)',
+                    prefixIcon: Icon(Icons.notes_outlined),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+          child: FilledButton(
+            onPressed: onSuivant,
+            child: const Text('Suivant'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Etape 2 : montant pilote uniquement par le pave custom, aucun champ
+/// focusable -> le clavier systeme ne peut pas s'ouvrir.
+class _EtapeMontant extends StatelessWidget {
+  final double montant;
+  final ValueChanged<String> onKey;
+  final VoidCallback onDelete;
+  final VoidCallback onContinuer;
+
+  const _EtapeMontant({
+    required this.montant,
+    required this.onKey,
+    required this.onDelete,
+    required this.onContinuer,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: Center(child: _MontantAffiche(montant: montant)),
+        ),
+        AmountKeypad(onKey: onKey, onDelete: onDelete),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+          child: FilledButton(
+            onPressed: onContinuer,
+            child: const Text('Continuer'),
+          ),
+        ),
+      ],
     );
   }
 }
