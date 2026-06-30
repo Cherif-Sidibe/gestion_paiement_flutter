@@ -107,7 +107,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   bool _correspondDate(Transaction tx) {
     final intervalle = _intervalleActif();
     if (intervalle == null) return true;
-    final date = DateTime.tryParse(tx.createdAt ?? '');
+    final date = parseDateApi(tx.createdAt);
     if (date == null) return false;
     return !date.isBefore(intervalle.start) && !date.isAfter(intervalle.end);
   }
@@ -115,13 +115,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
   /// Convertit le filtre date en intervalle concret (null = pas de filtre).
   DateTimeRange? _intervalleActif() {
     final maintenant = DateTime.now();
+    final debutJour = DateTime(maintenant.year, maintenant.month, maintenant.day);
     final finJour = DateTime(maintenant.year, maintenant.month, maintenant.day, 23, 59, 59);
     switch (_date) {
       case _DateFiltre.tout:
         return null;
       case _DateFiltre.septJours:
         return DateTimeRange(
-          start: finJour.subtract(const Duration(days: 7)),
+          start: debutJour.subtract(const Duration(days: 6)),
           end: finJour,
         );
       case _DateFiltre.ceMois:
