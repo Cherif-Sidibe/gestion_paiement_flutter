@@ -3,31 +3,35 @@ import 'package:flutter/foundation.dart';
 import 'package:gestion_paiement_flutter/core/network/api_exception.dart';
 import 'package:gestion_paiement_flutter/core/network/wallet_api_service.dart';
 import 'package:gestion_paiement_flutter/core/state/view_state.dart';
-import 'package:gestion_paiement_flutter/models/wallet_model.dart';
+import 'package:gestion_paiement_flutter/models/transaction_model.dart';
 
-/// Charge et expose le solde de la wallet courante (pattern Loading/Loaded/Error).
-class BalanceProvider extends ChangeNotifier {
+/// Charge et expose l'historique des transactions de la wallet courante
+/// (pattern Loading/Loaded/Error). Le back renvoie du plus recent au plus ancien.
+class TransactionsProvider extends ChangeNotifier {
   final WalletApiService _walletApiService;
 
-  BalanceProvider(this._walletApiService);
+  TransactionsProvider(this._walletApiService);
 
   ViewState _state = ViewState.initial;
-  WalletBalance? _balance;
+  List<Transaction> _transactions = const [];
   String? _errorMessage;
   String? _phone;
 
   ViewState get state => _state;
-  WalletBalance? get balance => _balance;
+  List<Transaction> get transactions => _transactions;
   String? get errorMessage => _errorMessage;
 
-  Future<void> loadBalance(String phone) async {
+  /// Les 5 transactions les plus recentes (apercu du dashboard).
+  List<Transaction> get latest => _transactions.take(5).toList();
+
+  Future<void> loadTransactions(String phone) async {
     _phone = phone;
     _state = ViewState.loading;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      _balance = await _walletApiService.getBalance(phone);
+      _transactions = await _walletApiService.getTransactions(phone);
       _state = ViewState.loaded;
     } on ApiException catch (e) {
       _errorMessage = e.message;
@@ -39,11 +43,10 @@ class BalanceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Recharge le solde du dernier numero connu (apres une operation, au retour
-  /// sur le dashboard). Sans numero memorise, ne fait rien.
+  /// Recharge l'historique du dernier numero connu (au retour sur le dashboard).
   Future<void> refresh() async {
     final phone = _phone;
     if (phone == null) return;
-    await loadBalance(phone);
+    await loadTransactions(phone);
   }
 }
