@@ -14,6 +14,8 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
+  static final _phonePattern = RegExp(r'^\+221[0-9]{9}$');
+
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
 
@@ -77,8 +79,12 @@ class _AuthScreenState extends State<AuthScreen> {
                     prefixIcon: Icon(Icons.phone),
                   ),
                   validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
+                    final phone = value?.trim() ?? '';
+                    if (phone.isEmpty) {
                       return 'Veuillez saisir un numero.';
+                    }
+                    if (!_phonePattern.hasMatch(phone)) {
+                      return 'Format attendu : +221XXXXXXXXX.';
                     }
                     return null;
                   },
@@ -92,7 +98,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           width: 22,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Se connecter'),
+                      : const Text('Continuer'),
                 ),
               ],
             ),

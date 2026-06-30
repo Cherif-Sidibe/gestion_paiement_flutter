@@ -44,7 +44,8 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } on ApiException catch (e) {
-      _errorMessage = e.message;
+      _errorMessage =
+          e.statusCode == 404 ? 'Aucun compte trouve pour ce numero.' : e.message;
       _state = ViewState.error;
       notifyListeners();
       return false;
